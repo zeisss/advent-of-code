@@ -2,7 +2,9 @@ const INPUT: &str = "95134467996366852979296466896829971143167334454515345323517
 
 use std::str::FromStr;
 
-fn _extract_captcha(left: &str, right: &str) -> String {
+fn _extract_captcha(left: &str, shift: usize) -> String {
+	let right : String = String::from(left).chars().cycle().skip(shift).take(left.len()).collect();
+
 	let sum : i32 = String::from(left)
 		.chars()
 		.zip(right.chars())
@@ -15,18 +17,11 @@ fn _extract_captcha(left: &str, right: &str) -> String {
 }
 
 fn extract_captcha(input: &str) -> String {
-	// TODO: use cycle().skip(1).take(n).collect() to build this instead
-	let mut s = String::from(input);
-	let last = s.pop().unwrap();
-	s.insert(0, last);
-
-	_extract_captcha(s.as_str(), input)
+	_extract_captcha(input, 1)
 }
 
 fn extract_shifted_captcha(input: &str) -> String {
-	let right : String = String::from(input).chars().cycle().skip(input.len() / 2).take(input.len()).collect();
-
-	_extract_captcha(right.as_str(), input)
+	_extract_captcha(input, input.len() / 2)
 }
 
 
