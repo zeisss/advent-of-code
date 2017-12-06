@@ -1,13 +1,21 @@
 use std::str::FromStr;
 
-#[derive(Debug,Clone,PartialEq)]
+#[derive(Debug,Clone)]
 struct Bank {
+	mods : i32,
 	fields: Vec<i32>,
+}
+
+impl PartialEq for Bank {
+    fn eq(&self, other: &Bank) -> bool {
+        self.fields == other.fields
+    }
 }
 
 impl Bank {
 	fn from(input: Vec<i32>) -> Self {
 		Bank{
+			mods: 0,
 			fields: input,
 		}
 	}
@@ -33,6 +41,7 @@ impl Bank {
 			self.fields[(1 + i + max_pos) as usize % len] += 1
 		}
 
+		self.mods += 1;
 		// println!("{:?} after", self.fields);
 	}
 }
@@ -59,16 +68,18 @@ fn redistribute(s: &str) -> i32 {
 	while !seen.contains(&bank) {
 		seen.push(bank.clone());
 		bank.sort();
-		
-		// println!("{:?} {:?}", seen, bank);
 	}
-	seen.len() as i32
+	let first_bank = seen.iter().filter(|b| **b == bank).nth(0).unwrap();
+	println!("{:?} {:?}", first_bank, bank);
+
+	bank.mods - first_bank.mods
 }
 
 #[test]
 fn my_test() {
 	assert_eq!(5, redistribute("0	2	7	0"));
 }
+
 fn main() {
 	let input = "11	11	13	7	0	15	5	5	4	4	1	1	7	1	15	11";
     println!("{}", redistribute(input));
