@@ -125,7 +125,7 @@ fn compile_with_time(workers: usize, time_mod: i32, steps: Vec<(&str, &str)>) ->
 		all_dependencies_done.extend(finished);
 		id_pool.retain(|i| !all_dependencies_done.contains(i));
 		
-		println!("Second {}", seconds);
+		println!("# Second {}", seconds);
 		println!("remaining:	{:?}", id_pool);
 		println!("in progress:	{:?}", workers);
 		println!("finished:	{:?}", all_dependencies_done);
@@ -153,6 +153,8 @@ fn compile_with_time(workers: usize, time_mod: i32, steps: Vec<(&str, &str)>) ->
 				println!("{:?} has {} dependencies: {:?}", id, dependencies.len(), dependencies);
 			}
 		}
+
+		println!("\n\n");
 	}
 	(all_dependencies_done.join(""), seconds-1)
 }
