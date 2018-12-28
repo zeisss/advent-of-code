@@ -19,7 +19,7 @@ fn test_manhatten_distance() {
 
 use std::collections::*;
 
-fn calculate_areas(inputs: Vec<Pos>) -> (HashMap<Pos, Distance>, HashSet<Pos>) {
+fn calculate_distances(inputs: &Vec<Pos>) -> (HashMap<Pos, Distance>, HashSet<Pos>) {
 	let mut areas = std::collections::HashMap::new();
 	let mut infinites = std::collections::HashSet::new();
 
@@ -51,8 +51,24 @@ fn calculate_areas(inputs: Vec<Pos>) -> (HashMap<Pos, Distance>, HashSet<Pos>) {
 	(areas, infinites)
 }
 
-fn largest_area(inputs: Vec<Pos>) -> P {
-	let (areas, infinites) = calculate_areas(inputs);
+fn calculate_areas(limit: Distance, inputs: &Vec<Pos>) -> Distance {
+	let mut result = 0;
+	for x in -400..=1000 {
+		for y in -400..=1000 {
+			let s : Distance = inputs.iter().map(|&coord| {
+				manhatten_distance(coord, (x, y))
+			}).sum();
+
+			if s < limit {
+				result += 1;
+			}
+		}
+	}
+	result
+}
+
+fn largest_area(inputs: &Vec<Pos>) -> P {
+	let (areas, infinites) = calculate_distances(inputs);
 	
 	areas.into_iter()
 			.filter(|(coord, _dist)| {
@@ -74,7 +90,7 @@ fn test_examples() {
 		(8, 9), // F
 	];
 
-	let (a, infinites) = calculate_areas(coords.clone());
+	let (a, infinites) = calculate_distances(&coords);
 	assert_eq!(coords.len(), a.len());
 	assert_eq!(9, a[&(3,4)]);
 	assert_eq!(17, a[&(5,5)]);
@@ -87,7 +103,7 @@ fn test_examples() {
 	assert!(!infinites.contains(&(3,4)));
 	assert!(!infinites.contains(&(5,5)));
 
-	assert_eq!(17, largest_area(coords.clone()));
+	assert_eq!(17, largest_area(&coords));
 	assert_eq!(coords.clone(), parse("1, 1
 1, 6
 8, 3
@@ -95,6 +111,8 @@ fn test_examples() {
 5, 5
 8, 9
 "));
+
+	assert_eq!(16, calculate_areas(32, &coords));
 
 }
 
@@ -113,8 +131,11 @@ fn test_parse() {
 
 fn main() {
     let input = include_str!("input.txt");
-    let r = largest_area(parse(input));
+    let coords = parse(input);
+    let r = largest_area(&coords);
     println!("result = {:?}", r);
+
+    println!("area count = {:?}", calculate_areas(10_000, &coords));
 
     // 5246 - too high
     // 5105 - too high
