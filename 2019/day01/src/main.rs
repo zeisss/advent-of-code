@@ -14,22 +14,27 @@ fn fuel_test()  {
 }
 
 fn module_total_fuel(mass: i32) -> i32 {
-    let mut total_mass : i32 = 0;
-    let mut input = mass;
-    loop {
-        let fuel = mass_to_fuel(input);
-        println!("{} + fuel({}) -> {}", total_mass, input, fuel);
-        if fuel <= 0 {
-            break
-        }
-        total_mass = total_mass + fuel;
-        input = fuel;
-    };
-    println!("result = {}", total_mass);
-    total_mass
-    
-
+    let f = mass_to_fuel(mass);
+    if f <= 0 {
+        0
+    } else {
+        f + module_total_fuel(f)
+    }
 }
+
+// fn module_total_fuel(mass: i32) -> i32 {
+//     let mut total_mass : i32 = 0;
+//     let mut input = mass;
+//     loop {
+//         let fuel = mass_to_fuel(input);
+//         if fuel <= 0 {
+//             break
+//         }
+//         total_mass = total_mass + fuel;
+//         input = fuel;
+//     };
+//     total_mass
+// }
 
 #[test]
 fn recursive_test() {
@@ -43,14 +48,13 @@ fn recursive_test() {
 }
 
 fn main() {
-    println!("1969: {}", module_total_fuel(1969));
-
     let input = include_str!("input.txt");
     let s : i32 = input.lines().
         flat_map(|s| s.parse::<i32>()).
         map(|i| mass_to_fuel(i)).
-        map(|f| f+ module_total_fuel(f)).
+        map(|f| f + module_total_fuel(f)).
         sum();
     println!("sum: {}", s);
+    assert_eq!(5322455, s);
 }
 // answer: 5322455
