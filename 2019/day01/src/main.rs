@@ -1,4 +1,4 @@
-fn calc_required_fuel(mass: i32) -> i32 {
+fn mass_to_fuel(mass: i32) -> i32 {
     let p1 = mass as f64 / 3.0;
     let p2 = p1 as i32;
     let p3 = p2 - 2;
@@ -7,17 +7,17 @@ fn calc_required_fuel(mass: i32) -> i32 {
 
 #[test]
 fn fuel_test()  {
-    assert_eq!(2, calc_required_fuel(12));
-    assert_eq!(2, calc_required_fuel(14));
-    assert_eq!(654, calc_required_fuel(1969));
-    assert_eq!(33583, calc_required_fuel(100756));
+    assert_eq!(2, mass_to_fuel(12));
+    assert_eq!(2, mass_to_fuel(14));
+    assert_eq!(654, mass_to_fuel(1969));
+    assert_eq!(33583, mass_to_fuel(100756));
 }
 
 fn module_total_fuel(mass: i32) -> i32 {
     let mut total_mass : i32 = 0;
     let mut input = mass;
     loop {
-        let fuel = calc_required_fuel(input);
+        let fuel = mass_to_fuel(input);
         println!("{} + fuel({}) -> {}", total_mass, input, fuel);
         if fuel <= 0 {
             break
@@ -48,7 +48,7 @@ fn main() {
     let input = include_str!("input.txt");
     let s : i32 = input.lines().
         flat_map(|s| s.parse::<i32>()).
-        map(|i| calc_required_fuel(i)).
+        map(|i| mass_to_fuel(i)).
         map(|f| f+ module_total_fuel(f)).
         sum();
     println!("sum: {}", s);
