@@ -17,7 +17,7 @@ fn to_row(s: &str) -> i32 {
     // B = upper half
     let row_range = s.chars().take(7)
     .fold((0, 127), |(min, max), c| {
-        println!("({}, {}) + {}", min, max, c);
+        // println!("({}, {}) + {}", min, max, c);
         match c {
             'F' => (min, (max as f64 - ((max-min) as f64)/2.0).floor() as i32),
             'B' => ((min as f64 + (max-min) as f64 / 2.0).ceil() as i32, max),
@@ -41,7 +41,7 @@ fn to_col(s: &str) -> i32 {
     // L = lower half
     let row_range = s.chars().skip(7).take(3)
     .fold((0, 7), |(min, max), c| {
-        println!("({}, {}) + {}", min, max, c);
+        // println!("({}, {}) + {}", min, max, c);
         match c {
             'L' => (min, (max as f64 - ((max-min) as f64)/2.0).floor() as i32),
             'R' => ((min as f64 + (max-min) as f64 / 2.0).ceil() as i32, max),
@@ -81,8 +81,18 @@ fn part1(s: &str) -> i32 {
 fn main() {
     let input = include_str!("input.txt");
     println!("Day 01!");
-    println!("Part 1: {}", part1(input)); // 292 is too low
+    println!("Part 1: {}", part1(input));
     println!("Part 2: {}", part2(input));
 }
 
-fn part2(_s: &str) -> i32 { 0 }
+fn part2(s: &str) -> i32 {
+    let mut all_passes : Vec<_> = s.lines().map(|s| parse_boardingpass(s)).collect();
+    all_passes.sort();
+
+    let seat = all_passes.windows(2)
+        .inspect(|x| println!("{:?}", x))
+        .filter(|x| x[0] +2 == x[1])
+        .next()
+        .unwrap();
+    seat[0]+1
+}
