@@ -1,7 +1,3 @@
-
-
-
-
 fn seat_id(row: i32, col: i32) -> i32 {
     row * 8 + col
 }
