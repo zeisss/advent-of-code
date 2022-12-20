@@ -1,8 +1,7 @@
-
 fn parse(s: &str) -> Vec<u32> {
-    s.split("\n\n").map(|block| {
-        block.lines().map(|line| line.parse::<u32>().unwrap()).sum()
-    }).collect()
+    s.split("\n\n")
+        .map(|block| block.lines().map(|line| line.parse::<u32>().unwrap()).sum())
+        .collect()
 }
 
 fn sum_topk(input: &mut Vec<u32>, n: usize) -> u32 {
@@ -37,7 +36,6 @@ fn test_foo() {
     // part2
     assert_eq!(45000, sum_topk(&mut list, 3))
 }
-
 
 fn main() {
     let input = include_str!("input.txt");
