@@ -1,76 +1,79 @@
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub enum Symbol {
     Rock,
     Paper,
     Scissor,
 }
 
-#[derive(PartialEq, Debug)]
-enum Outcome {
+#[derive(PartialEq, Debug, Clone, Copy)]
+pub enum Outcome {
     Win,
     Loss,
     Draw,
 }
 
-#[derive(PartialEq)]
-pub struct Round {
-    Enemy: Symbol,
-    Player: Symbol,
-}
-
 mod parser {
-    pub fn parse(input: &str) -> Vec<crate::Round> {
-        use crate::{Round, Symbol};
+    use crate::{Outcome, Symbol};
 
-        println!("Hello, world!");
-
-        input.lines().map(|line| {
-            Round{
-                Enemy: match line.chars().nth(0).unwrap() {
-                'A' => Symbol::Rock,
-                'B' => Symbol::Paper,
-                'C' => Symbol::Scissor,
-                unknown => panic!("unsupported symbol: {}", unknown),
-                },
-                Player: match line.chars().nth(2).unwrap() {
-                'X' => Symbol::Rock,
-                'Y' => Symbol::Paper,
-                'Z' => Symbol::Scissor,
-                unknown => panic!("unsupported symbol: {}", unknown),
-                },
-            }
-        }).collect()
+    pub struct Line {
+        pub left: char,
+        pub right: char,
     }
 
+    pub fn parse_symbol(input: char) -> Symbol {
+        match input {
+        'A' | 'X' => Symbol::Rock,
+        'B' | 'Y' => Symbol::Paper,
+        'C' | 'Z' => Symbol::Scissor,
+        unknown => panic!("unsupported symbol: {}", unknown),
+        }
+    } 
 
-    #[test]
-    fn test_examples() {
-        use crate::Symbol;
+    pub fn parse_outcome(input: char) -> Outcome {
+        match input {
+        'X' => Outcome::Loss,
+        'Y' => Outcome::Draw,
+        'Z' => Outcome::Win,
+        unknown => panic!("unsupported outcome: {}", unknown),
+        }
+    }
 
-        let input = "A Y
-B X
-C Z";
-        let data = parse(input);
-
-        assert_eq!(Symbol::Rock, data[0].Enemy);
-        assert_eq!(Symbol::Paper, data[0].Player);
-
-        assert_eq!(Symbol::Paper, data[1].Enemy);
-        assert_eq!(Symbol::Rock, data[1].Player);
-
-        assert_eq!(Symbol::Scissor, data[2].Enemy);
-        assert_eq!(Symbol::Scissor, data[2].Player);
+    pub fn parse(input: &str) -> Vec<Line> {
+        input.lines().map(|line| {
+            Line{
+                left: line.chars().nth(0).unwrap(),
+                right: line.chars().nth(2).unwrap(),
+            }
+        }).collect()
     }
 }
 
 mod ruleset {
-    use crate::{Round, Symbol, Outcome};
+    use crate::{Symbol, Outcome};
+
+    fn wins_against(s: Symbol) -> Symbol {
+        use crate::Symbol::*;
+        match s {
+        Rock => Scissor,
+        Paper => Rock,
+        Scissor => Paper,
+        }
+    }
+
+    fn loses_against(s: Symbol) -> Symbol {
+        use crate::Symbol::*;
+        match s {
+        Rock => Paper,
+        Paper => Scissor,
+        Scissor => Rock,
+        }
+    }
 
     fn eval(player: Symbol, enemy: Symbol) -> Outcome {
         if enemy == player {
             Outcome::Draw
-        } else if enemy == Symbol::Rock && player == Symbol::Scissor || enemy == Symbol::Paper && player == Symbol::Rock || enemy == Symbol::Scissor && player == Symbol::Paper {
+        } else if wins_against(enemy) == player {
             Outcome::Loss
         } else {
             Outcome::Win
@@ -89,6 +92,14 @@ mod ruleset {
         Outcome::Win => 6,
         };
         score + score2
+    }
+
+    pub fn for_outcome(enemy: Symbol, outcome: Outcome) -> Symbol {
+        match outcome {
+        Outcome::Win => loses_against(enemy),
+        Outcome::Loss => wins_against(enemy), // pick the losing move
+        Outcome::Draw => enemy,
+        }
     }
     
     #[test]
@@ -114,8 +125,18 @@ mod ruleset {
     }
 }
 
-fn part1(input: Vec<Round>) -> u32 {
-    input.into_iter().map(|r| ruleset::score_round(r.Player, r.Enemy)).sum()
+fn part1(input: &Vec<parser::Line>) -> u32 {
+    input.into_iter().map(|line| {
+        ruleset::score_round(parser::parse_symbol(line.right), parser::parse_symbol(line.left))
+    }).sum()
+}
+
+fn part2(input: &Vec<parser::Line>) -> u32 {
+    input.into_iter().map(|line| {
+        let enemy = parser::parse_symbol(line.left);
+        let player = ruleset::for_outcome(enemy, parser::parse_outcome(line.right));
+        ruleset::score_round(player, enemy)
+    }).sum()
 }
 
 #[test]
@@ -125,12 +146,14 @@ B X
 C Z";
     let data = parser::parse(input);
 
-    assert_eq!(15, part1(data))
+    assert_eq!(15, part1(&data));
+    assert_eq!(12, part2(&data));
 }
 
 fn main() {
     let input = include_str!("input.txt");
     let data = parser::parse(input);
 
-    println!("Part 1: {}", part1(data));
+    println!("Part 1: {}", part1(&data));
+    println!("Part 2: {}", part2(&data));
 }
