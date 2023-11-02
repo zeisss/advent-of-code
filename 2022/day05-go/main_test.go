@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	approvals "github.com/approvals/go-approval-tests"
@@ -72,4 +73,10 @@ move 1 from 1 to 2`
 
 		})
 	}
+}
+
+func TestMain(m *testing.M) {
+	approvals.UseFolder("testdata")
+
+	os.Exit(m.Run())
 }
