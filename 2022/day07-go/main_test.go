@@ -66,3 +66,11 @@ func TestBelow100k(t *testing.T) {
 	totalSize := SumBelowThreshold(&fs, 100_000)
 	assert.EqualValues(t, 95437, totalSize)
 }
+
+func TestFindSmallestDeletable(t *testing.T) {
+	fs, err := Parse(INPUT)
+	require.NoError(t, err)
+
+	sizeSmallestDeletable := FindSmallestDeletable(&fs, DISK_SIZE, UPDAE_SIZE)
+	assert.EqualValues(t, 24_933_642, sizeSmallestDeletable)
+}

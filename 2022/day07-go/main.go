@@ -22,7 +22,13 @@ func main() {
 
 	sum := SumBelowThreshold(&fs, 100_000)
 	log.Printf("Sum below threshold: %d", sum)
+	log.Printf("Smallest deletable: %d", FindSmallestDeletable(&fs, DISK_SIZE, UPDAE_SIZE))
 }
+
+const (
+	DISK_SIZE  int64 = 70_000_000
+	UPDAE_SIZE int64 = 30_000_000
+)
 
 type Directory struct {
 	Parent *Directory
@@ -205,4 +211,24 @@ func SumBelowThreshold(dir *Directory, threshold int64) int64 {
 		}
 	})
 	return totalSize
+}
+
+func FindSmallestDeletable(root *Directory, diskSize, sizeNeeded int64) int64 {
+	rootSize := TotalSize(root)
+
+	var smallestSize int64 = rootSize
+	Walk(root, func(n any) {
+		switch n := n.(type) {
+		case *Directory:
+			directorySize := TotalSize(n)
+
+			if diskSize-rootSize+directorySize >= sizeNeeded {
+				// we can delete this directory to get sizeNeeded
+				if directorySize < smallestSize {
+					smallestSize = directorySize
+				}
+			}
+		}
+	})
+	return smallestSize
 }
