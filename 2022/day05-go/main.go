@@ -15,7 +15,7 @@ func main() {
 		log.Fatalf("ERROR: %v", err)
 	}
 	for plan.HasNextAction() {
-		processNextAction(&plan)
+		StackMover9001.processNextAction(&plan)
 	}
 	log.Println(GetTopContainerNames(plan.Stacks))
 }
@@ -89,17 +89,24 @@ func ParseData(data []byte) (Plan, error) {
 	return plan, nil
 }
 
-func processNextAction(p *Plan) {
+type StackMover bool
+
+var (
+	StackMover9000 StackMover = false
+	StackMover9001 StackMover = true
+)
+
+func (mover StackMover) processNextAction(p *Plan) {
 	if !p.HasNextAction() {
 		panic("no actions left")
 	}
 
 	action := p.Actions[0]
 	p.Actions = p.Actions[1:]
-	p.Stacks = applyAction(p.Stacks, action)
+	p.Stacks = mover.applyAction(p.Stacks, action)
 }
 
-func applyAction(stacks [][]string, action Action) [][]string {
+func (mover StackMover) applyAction(stacks [][]string, action Action) [][]string {
 	src := action.Src - 1
 	dst := action.Dst - 1
 
@@ -115,8 +122,12 @@ func applyAction(stacks [][]string, action Action) [][]string {
 	data := stacks[src][srcLen-action.Amount:]
 	stacks[src] = stacks[src][0 : srcLen-action.Amount]
 
-	for i := len(data); i > 0; i-- {
-		stacks[dst] = append(stacks[dst], data[i-1])
+	if mover {
+		stacks[dst] = append(stacks[dst], data...)
+	} else {
+		for i := len(data); i > 0; i-- {
+			stacks[dst] = append(stacks[dst], data[i-1])
+		}
 	}
 
 	return stacks

@@ -11,7 +11,7 @@ import (
 func TestApplyAction(t *testing.T) {
 	for i := 1; i <= 3; i++ {
 		t.Run(fmt.Sprintf("amount=%d", i), func(t *testing.T) {
-			out := applyAction(
+			out := StackMover9000.applyAction(
 				[][]string{
 					{"a", "b", "c"},
 					{},
@@ -66,7 +66,7 @@ move 1 from 1 to 2`
 			require.NoError(t, err)
 
 			for i := 0; i < actions; i++ {
-				processNextAction(&plan)
+				StackMover9000.processNextAction(&plan)
 			}
 			approvals.VerifyJSONStruct(t, plan)
 
