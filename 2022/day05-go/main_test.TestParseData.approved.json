@@ -1,0 +1,38 @@
+{
+  "Stacks": [
+    [
+      "Z",
+      "N"
+    ],
+    [
+      "M",
+      "C",
+      "D"
+    ],
+    [
+      "P"
+    ]
+  ],
+  "Actions": [
+    {
+      "Src": 2,
+      "Dst": 1,
+      "Amount": 1
+    },
+    {
+      "Src": 1,
+      "Dst": 3,
+      "Amount": 3
+    },
+    {
+      "Src": 2,
+      "Dst": 1,
+      "Amount": 2
+    },
+    {
+      "Src": 1,
+      "Dst": 2,
+      "Amount": 1
+    }
+  ]
+}
