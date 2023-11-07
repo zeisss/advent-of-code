@@ -1,0 +1,34 @@
+[
+  {
+    "Direction": "R",
+    "Amount": 4
+  },
+  {
+    "Direction": "U",
+    "Amount": 4
+  },
+  {
+    "Direction": "L",
+    "Amount": 3
+  },
+  {
+    "Direction": "D",
+    "Amount": 1
+  },
+  {
+    "Direction": "R",
+    "Amount": 4
+  },
+  {
+    "Direction": "D",
+    "Amount": 1
+  },
+  {
+    "Direction": "L",
+    "Amount": 5
+  },
+  {
+    "Direction": "R",
+    "Amount": 2
+  }
+]
