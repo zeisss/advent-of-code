@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"strconv"
@@ -14,12 +15,12 @@ func main() {
 		log.Fatalln(err)
 	}
 	steps := MustParse(string(data))
-	var world Rope // we can just start on the zero value
+	rope := NewRope(0, 0, 10)
+	visitor := SeenFieldsRecorder{}
 
-	_, unique := MustApplyStepsAndRecord(world, steps)
+	MustApplyStepsAndVisit(rope, steps, visitor)
 
-	fmt.Printf("Unique Places visited by Tail: %d", unique)
-
+	fmt.Printf("Unique Places visited by Tail: %d", visitor.Unique())
 }
 
 // NewRope returns a new rope of the given length with all pieces at position x,y.
@@ -38,7 +39,7 @@ func (p Position) String() string {
 	return fmt.Sprintf("<%d,%d>", p.X, p.Y)
 }
 
-type Rope [2]Position
+type Rope []Position
 
 func (r Rope) String() string {
 	var b strings.Builder
@@ -52,6 +53,14 @@ func (r Rope) String() string {
 	return b.String()
 }
 
+func (r Rope) Copy() Rope {
+	positions := make([]Position, 0, len(r))
+	for _, pos := range r {
+		positions = append(positions, pos)
+	}
+	return Rope(positions)
+}
+
 type Step struct {
 	Direction string
 	Amount    int
@@ -62,7 +71,7 @@ func (s Step) String() string {
 }
 
 func MustParseStep(line string) Step {
-	fields := strings.SplitN(line, " ", 2)
+	fields := strings.SplitN(strings.TrimSpace(line), " ", 2)
 
 	n, err := strconv.ParseInt(fields[1], 10, 32)
 	if err != nil {
@@ -89,45 +98,76 @@ func MustParse(input string) []Step {
 }
 
 func MustMoveDirection(rope Rope, direction string) Rope {
-	adjust := func(head int, tail *int) {
-		if head > *tail {
-			*tail++
-		} else if head < *tail {
-			*tail--
-		}
-	}
-	move := func(primaryHead, secondaryHead, primaryTail, secondaryTail *int, mod int) {
+	move := func(primaryHead *int, mod int) {
 		*primaryHead += mod
+	}
 
-		if distance(*primaryHead, *primaryTail) > 1 {
-			*primaryTail += mod
-			adjust(*secondaryHead, secondaryTail)
+	snapAlong := func(head, tail *Position) {
+		if *head == *tail {
+			return
 		}
+
+		if head.X == tail.X {
+			if head.Y-tail.Y > 1 {
+				tail.Y++
+			} else if tail.Y-head.Y > 1 {
+				tail.Y--
+			}
+		} else if head.Y == tail.Y {
+			if head.X-tail.X > 1 {
+				tail.X++
+			} else if tail.X-head.X > 1 {
+				tail.X--
+			}
+		} else if distance(head.X, tail.X) >= 2 || distance(head.Y, tail.Y) >= 2 {
+			// head is in one of the corners, we need to adjust both X & Y
+			if head.Y-tail.Y > 0 {
+				tail.Y++
+			} else if tail.Y-head.Y > 0 {
+				tail.Y--
+			}
+			if head.X-tail.X > 0 {
+				tail.X++
+			} else if tail.X-head.X > 0 {
+				tail.X--
+			}
+		}
+
+	}
+
+	rope = rope.Copy()
+
+	switch direction {
+	case "U":
+		move(&rope[0].Y, -1)
+	case "D":
+		move(&rope[0].Y, +1)
+	case "L":
+		move(&rope[0].X, -1)
+	case "R":
+		move(&rope[0].X, +1)
+	default:
+		panic("Unknown direction: " + direction)
 	}
 
 	for i := range rope {
 		if i == 0 {
 			continue
 		}
-
-		head := rope[i-1]
 		tail := rope[i]
-		switch direction {
-		case "U":
-			move(&head.Y, &head.X, &tail.Y, &tail.X, -1)
-		case "D":
-			move(&head.Y, &head.X, &tail.Y, &tail.X, +1)
-		case "L":
-			move(&head.X, &head.Y, &tail.X, &tail.Y, -1)
-		case "R":
-			move(&head.X, &head.Y, &tail.X, &tail.Y, +1)
-		default:
-			panic("Unknown direction: " + direction)
-		}
-		rope[i-1] = head
+		snapAlong(&rope[i-1], &tail)
 		rope[i] = tail
 	}
 	return rope
+}
+
+func distance(a, b int) int {
+	d := a - b
+	if d < 0 {
+		return -1 * d
+	} else {
+		return d
+	}
 }
 
 func MustApply(rope Rope, step Step) Rope {
@@ -137,24 +177,87 @@ func MustApply(rope Rope, step Step) Rope {
 	return rope
 }
 
-func MustApplyStepsAndRecord(rope Rope, steps []Step) (Rope, int) {
-	visited := make(map[Position]struct{})
+type Visitor interface {
+	BeforeStep(string)
+	Seen(Rope)
+}
 
+func MustApplyStepsAndVisit(rope Rope, steps []Step, visitor Visitor) Rope {
+	if visitor != nil {
+		visitor.BeforeStep("Initial State")
+		visitor.Seen(rope)
+	}
 	for _, step := range steps {
+		visitor.BeforeStep(step.String())
 		for i := 0; i < step.Amount; i++ {
 			rope = MustMoveDirection(rope, step.Direction)
-
-			visited[rope[len(rope)-1]] = struct{}{}
+			if visitor != nil {
+				visitor.Seen(rope)
+			}
 		}
 	}
 
-	return rope, len(visited)
+	return rope
 }
 
-func distance(a, b int) int {
-	d := a - b
-	if d < 0 {
-		d = d * -1
+func RenderString(out io.Writer, startX, startY, width, height int, rope Rope) {
+	// Assume: rope is never <0 or > width|height
+
+	fmt.Println(rope)
+
+	row := strings.Repeat(".", width) + "\n"
+	field := strings.Repeat(row, height)
+
+	data := []byte(field)
+
+	if startX >= 0 && startY >= 0 {
+		data[startX+startY*(width+1)] = 's'
 	}
-	return d
+
+	// we draw the last rope element first
+	for i := len(rope) - 1; i >= 0; i-- {
+		p := rope[i]
+
+		var w byte
+		switch i {
+		case 0:
+			w = 'H'
+		default:
+			if len(rope) == 2 {
+				w = 'T'
+			} else {
+				w = byte('0' + i)
+			}
+		}
+		data[p.X+p.Y*(width+1)] = w
+	}
+
+	out.Write(data)
+}
+
+type SeenFieldsRecorder map[Position]struct{}
+
+func (v SeenFieldsRecorder) Seen(rope Rope) {
+	tail := rope[len(rope)-1]
+	v[tail] = struct{}{}
+}
+func (v SeenFieldsRecorder) BeforeStep(s string) {}
+
+func (v SeenFieldsRecorder) Unique() int {
+	return len(v)
+}
+
+type Renderer struct {
+	w, h           int
+	startX, startY int
+	out            io.Writer
+}
+
+func (r Renderer) BeforeStep(s string) {
+	fmt.Fprintf(r.out, "== %s ==\n\n", s)
+}
+
+func (r Renderer) Seen(rope Rope) {
+	RenderString(r.out, r.startX, r.startY, r.w, r.h, rope)
+	fmt.Fprintln(r.out)
 }
