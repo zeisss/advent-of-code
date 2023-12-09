@@ -15,22 +15,31 @@ Card 5: 87 83 26 28 32 | 88 30 70 12 93 22 82 36
 Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11`, "\n")
 
 func ExampleINPUT() {
-	fmt.Println("Part 1: Total Points:", MustParse(INPUT).TotalPoints())
+	input := MustParse(INPUT)
+	fmt.Println("Part 1: Total Points:", input.TotalPoints())
+	fmt.Println("Part 2: Scratch Cards:", input.CountCummulativeScratchCards())
 	// Output:
 	// Part 1: Total Points: 13
+	// Part 2: Scratch Cards: 30
 }
 func ExampleDay04Input() {
-	fmt.Println("Part 1: Total Points:", MustParse(internal.MustReadFile("../../testdata/day-04.txt")).TotalPoints())
+	input := MustParse(internal.MustReadFile("../../testdata/day-04.txt"))
+	fmt.Println("Part 1: Total Points:", input.TotalPoints())
+	fmt.Println("Part 2: Scratch Cards:", input.CountCummulativeScratchCards())
+
 	// Output:
 	// Part 1: Total Points: 20829
+	// Part 2: Scratch Cards: 12648035
 }
 
 func ExampleParseCard() {
 	card := MustParseCard("Card 1: 41 48 83 86 17 | 83 86  6 31 17  9 48 53")
 	fmt.Println("card:", card)
 	fmt.Println("points:", card.Points())
+	fmt.Println("wins:", card.CountWins())
 
 	// Output:
 	// card: {1 [41 48 83 86 17] [83 86 6 31 17 9 48 53]}
 	// points: 8
+	// wins: 4
 }

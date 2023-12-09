@@ -56,18 +56,26 @@ type Card struct {
 	CardNumbers    []int
 }
 
-func (c Card) Points() int64 {
-	var winningNumbers int
+func (c Card) CountWins() int {
+	var wins int
 	for _, number := range c.CardNumbers {
 		if c.IsWinningNumber(number) {
-			if winningNumbers == 0 {
-				winningNumbers = 1
-			} else {
-				winningNumbers <<= 1
-			}
+			wins++
 		}
 	}
-	return int64(winningNumbers)
+	return wins
+}
+
+func (c Card) Points() int64 {
+	wins := c.CountWins()
+	if wins == 0 {
+		return 0
+	}
+	n := 1
+	for i := 1; i < wins; i++ {
+		n <<= 1
+	}
+	return int64(n)
 }
 func (c Card) IsWinningNumber(n int) bool {
 	for _, winningNumber := range c.WinningNumbers {
@@ -88,10 +96,34 @@ func MustParse(s []string) Input {
 
 type Input []Card
 
-func (i Input) TotalPoints() int64 {
+func (input Input) TotalPoints() int64 {
 	var sum int64
-	for _, c := range i {
+	for _, c := range input {
 		sum += c.Points()
 	}
 	return sum
+}
+
+func (input Input) CountCummulativeScratchCards() int64 {
+	var copies []int = make([]int, len(input))
+	for i := range copies { // Assume we have 1 scratch card each ID
+		copies[i] = 1
+	}
+
+	var count int64
+
+	for _, card := range input {
+		// fmt.Println("=>", card.ID, count)
+		if wins := card.CountWins(); wins > 0 {
+			for i := 0; i < wins; i++ {
+				copies[card.ID-1+i+1] += copies[card.ID-1]
+			}
+		}
+		// fmt.Println("  Adding", int64(copies[card.ID-1]))
+		count += int64(copies[card.ID-1])
+
+		// fmt.Printf("  %v\n", copies)
+	}
+
+	return count
 }
