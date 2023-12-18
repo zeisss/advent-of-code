@@ -53,6 +53,14 @@ func Map[N any, O any](values []N, mapper func(N) O) []O {
 	return result
 }
 
+func MapIndex[N any, O any](values []N, mapper func(int, N) O) []O {
+	var result []O = make([]O, len(values))
+	for i := range values {
+		result[i] = mapper(i, values[i])
+	}
+	return result
+}
+
 func Sum[N int64 | int32 | int | float32 | float64](values []N) N {
 	var sum N
 	for i := range values {
