@@ -6,9 +6,9 @@ import (
 	"strings"
 )
 
-type Range struct{ From, To int }
+type Range struct{ From, To int64 }
 
-func parseInput(input string) []Range {
+func parseInput(input string) RangeList {
 	var ranges []Range
 
 	pairs := strings.Split(input, ",")
@@ -19,39 +19,96 @@ func parseInput(input string) []Range {
 	return ranges
 }
 
-func IsInvalidID(id int) bool {
-	sid := fmt.Sprintf("%d", id)
-	if len(sid)%2 == 1 {
-		return false
+func (r Range) All() iter.Seq[int64] {
+	return func(yield func(int64) bool) {
+		for n := r.From; n <= r.To; n++ {
+			if !yield(n) {
+				return
+			}
+		}
 	}
-	mid := len(sid) / 2
-	return sid[:mid] == sid[mid:]
 }
 
-func emitNumbers(ranges []Range) iter.Seq[int] {
-	return func(yield func(int) bool) {
-		for _, rg := range ranges {
-			for n := rg.From; n <= rg.To; n++ {
-				if IsInvalidID(n) {
-					if !yield(n) {
-						return
-					}
+func (r Range) String() string {
+	return fmt.Sprintf("%d-%d", r.From, r.To)
+}
+
+type RangeList []Range
+
+func (rs RangeList) All() iter.Seq[int64] {
+	return func(yield func(int64) bool) {
+		for _, rg := range rs {
+			for n := range rg.All() {
+				if !yield(n) {
+					return
 				}
 			}
 		}
 	}
 }
 
-func sum(it iter.Seq[int]) int {
-	total := 0
+func filterInvalidIDs(it iter.Seq[int64], filter func(int64) bool) iter.Seq[int64] {
+	return func(yield func(int64) bool) {
+		for id := range it {
+			if filter(id) {
+				if !yield(id) {
+					return
+				}
+			}
+		}
+	}
+}
+
+func Part1InvalidIDPolicy(id int64) bool {
+	sid := fmt.Sprintf("%d", id)
+	mid := len(sid) / 2
+	return sid[:mid] == sid[mid:]
+}
+
+func Part2InvalidIDPolicy(id int64) bool {
+	sid := fmt.Sprintf("%d", id)
+
+	if len(sid) <= 1 {
+		return false
+	}
+
+	for i := 1; i < len(sid); i++ {
+		if isRepeatedStringMatching(sid[:i], sid) {
+			return true
+		}
+	}
+	return false
+}
+
+func isRepeatedStringMatching(pattern, full string) bool {
+	multiplier := int(len(full) / len(pattern))
+	// length doesn't exactly match
+	if multiplier*len(pattern) != len(full) {
+		return false
+	}
+	return strings.Repeat(pattern, multiplier) == full
+}
+
+func sum(it iter.Seq[int64]) int64 {
+	var total int64 = 0
 	for v := range it {
 		total += v
 	}
 	return total
 }
 
-func Part1(input string) int {
-	return sum(emitNumbers(parseInput(input)))
+func Part1(input string) int64 {
+	return sum(filterInvalidIDs(
+		parseInput(input).All(),
+		Part1InvalidIDPolicy,
+	))
+}
+
+func Part2(input string) int64 {
+	return sum(filterInvalidIDs(
+		parseInput(input).All(),
+		Part2InvalidIDPolicy,
+	))
 }
 
 func main() {
@@ -59,4 +116,5 @@ func main() {
 	fmt.Println("Advent of Code 2025 - Day 02")
 
 	fmt.Println("Part 1:", Part1(input))
+	fmt.Println("Part 2:", Part2(input))
 }
