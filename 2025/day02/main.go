@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"iter"
 	"strings"
+
+	helpers "github.com/zeisss/advent-of-code/2025"
 )
 
 type Range struct{ From, To int64 }
@@ -89,23 +91,15 @@ func isRepeatedStringMatching(pattern, full string) bool {
 	return strings.Repeat(pattern, multiplier) == full
 }
 
-func sum(it iter.Seq[int64]) int64 {
-	var total int64 = 0
-	for v := range it {
-		total += v
-	}
-	return total
-}
-
 func Part1(input string) int64 {
-	return sum(filterInvalidIDs(
+	return helpers.Sum(filterInvalidIDs(
 		parseInput(input).All(),
 		Part1InvalidIDPolicy,
 	))
 }
 
 func Part2(input string) int64 {
-	return sum(filterInvalidIDs(
+	return helpers.Sum(filterInvalidIDs(
 		parseInput(input).All(),
 		Part2InvalidIDPolicy,
 	))
