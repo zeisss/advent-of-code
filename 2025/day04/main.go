@@ -26,7 +26,18 @@ func ParseGrid(input string) Grid {
 	return g
 }
 
-func (g Grid) AccessibleRollsOfPaper() int64 {
+func (g Grid) Copy() Grid {
+	newGrid := Grid{}
+	for _, row := range g.Data {
+		newRow := make([]int, len(row))
+		copy(newRow, row)
+		newGrid.Data = append(newGrid.Data, newRow)
+	}
+	return newGrid
+}
+
+func (g Grid) RemoveSurroundedRolls() (Grid, int64) {
+	newGrid := g.Copy()
 	const threshold = 4
 	var rolls int64
 	for y := 0; y < len(g.Data); y++ {
@@ -40,10 +51,11 @@ func (g Grid) AccessibleRollsOfPaper() int64 {
 			if neighbors < threshold { // below
 				// fmt.Println(x, y)
 				rolls++
+				newGrid.Data[y][x] = 0 // Remove roll
 			}
 		}
 	}
-	return rolls
+	return newGrid, rolls
 }
 
 func (g Grid) HasRoll(x, y int) int {
@@ -57,7 +69,22 @@ func (g Grid) HasRoll(x, y int) int {
 }
 
 func Part1(input string) int64 {
-	return ParseGrid(input).AccessibleRollsOfPaper()
+	_, n := ParseGrid(input).RemoveSurroundedRolls()
+	return n
+}
+
+func Part2(input string) int64 {
+	grid := ParseGrid(input)
+	var n int64
+	var totalRemoved int64
+	for {
+		grid, n = grid.RemoveSurroundedRolls()
+		totalRemoved += n
+		if n == 0 {
+			break
+		}
+	}
+	return totalRemoved
 }
 
 func main() {
@@ -201,4 +228,5 @@ func main() {
 @@@@@@@@@@...@@@.@@@@@@@@.@@...@..@@@..@@@@@@.@@.@@..@@@@@.@.@@@.@@@..@@@.@@@.@.@.@.@.@@@@@@@.@@@..@..@..@@.@@@@@..@@@@.@@.@.@.@...@@.@@..`
 
 	fmt.Println("Part 1:", Part1(input))
+	fmt.Println("Part 2:", Part2(input))
 }
