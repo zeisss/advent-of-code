@@ -10,7 +10,10 @@ func Part1(input string) int {
 }
 
 func Part2(input string) int {
-	return 0
+	db := ParseDatabase(input)
+
+	return db.CountUniqueFresh()
+
 }
 
 type Ingredient int
@@ -62,6 +65,7 @@ func (d Database) IsFresh(i Ingredient) bool {
 	return false
 }
 
+// Day 05 Part 1
 func (d Database) CountFresh() int {
 	count := 0
 	for _, ingredient := range d.Ingredients {
@@ -70,6 +74,20 @@ func (d Database) CountFresh() int {
 		}
 	}
 	return count
+}
+
+func (d Database) CountUniqueFresh() int {
+	seen := map[Ingredient]struct{}{}
+
+	for _, r := range d.Fresh {
+		for i := r.From; i <= r.To; i++ {
+			if d.IsFresh(i) {
+				seen[i] = struct{}{}
+			}
+		}
+	}
+
+	return len(seen)
 }
 
 func main() {

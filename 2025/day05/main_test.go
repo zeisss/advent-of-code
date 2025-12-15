@@ -24,6 +24,11 @@ func ExamplePart1() {
 	// Output: 3
 }
 
+func ExamplePart2() {
+	fmt.Println(Part2(exampleInput))
+	// Output: 14
+}
+
 func TestParseDatabase(t *testing.T) {
 	db := ParseDatabase(exampleInput)
 	assert.Len(t, db.Fresh, 4)
