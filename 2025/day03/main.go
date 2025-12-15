@@ -215,9 +215,17 @@ func main() {
 	fmt.Println("Part 2", Part2(input))
 }
 
-func Part2(input string) int {
-	return 0
+func Part2(input string) int64 {
+	banks := ParsePuzzleInput(input)
+	it := helpers.Map(
+		slices.Values(banks),
+		func(b Bank) int64 {
+			return b.BatteryCombiJoltage(12)
+		},
+	)
+	return helpers.Sum(it)
 }
+
 func Part1(input string) int {
 	banks := ParsePuzzleInput(input)
 	it := helpers.Map(
@@ -230,22 +238,37 @@ func Part1(input string) int {
 }
 
 type Rating uint8
-type Bank []Rating
+type Bank struct {
+	Ratings []Rating
+}
 type PuzzleInput []Bank
 
 func (b Bank) BiggestJoltage() int {
 	var first, second Rating
-	first = b[0]
-	second = b[1]
-	for i := 1; i < len(b); i++ {
-		if b[i] > first && i+1 < len(b) {
-			first = b[i]
-			second = b[i+1]
-		} else if b[i] > second {
-			second = b[i]
+	first = b.Ratings[0]
+	second = b.Ratings[1]
+	for i := 1; i < len(b.Ratings); i++ {
+		if b.Ratings[i] > first && i+1 < len(b.Ratings) {
+			first = b.Ratings[i]
+			second = b.Ratings[i+1]
+		} else if b.Ratings[i] > second {
+			second = b.Ratings[i]
 		}
 	}
 	return int(first*10 + second)
+}
+
+func (b Bank) BatteryCombiJoltage(batteries int) int64 {
+	ratings := make([]Rating, batteries)
+
+	// TODO: implement BiggestJoltage for 12 battieries
+
+	// Sum up ratings by position
+	var result int64
+	for i, r := range ratings {
+		result += int64(r) * helpers.PowInt64(10, batteries-1-i)
+	}
+	return result
 }
 
 func ParsePuzzleInput(input string) PuzzleInput {
@@ -260,7 +283,7 @@ func ParsePuzzleInput(input string) PuzzleInput {
 func ParseLine(line string) Bank {
 	var bank Bank
 	for _, ch := range line {
-		bank = append(bank, Rating(ch-'0'))
+		bank.Ratings = append(bank.Ratings, Rating(ch-'0'))
 	}
 	return bank
 }

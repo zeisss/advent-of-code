@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"iter"
+	"math"
 
 	"golang.org/x/exp/constraints"
 )
@@ -35,4 +36,8 @@ func Map[T any, O any](it iter.Seq[T], mapper func(T) O) iter.Seq[O] {
 			}
 		}
 	}
+}
+
+func PowInt64(base int64, exp int) int64 {
+	return int64(math.Pow(float64(base), float64(exp)))
 }
