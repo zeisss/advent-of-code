@@ -260,8 +260,34 @@ func (b Bank) BiggestJoltage() int {
 
 func (b Bank) BatteryCombiJoltage(batteries int) int64 {
 	ratings := make([]Rating, batteries)
+	copy(ratings, b.Ratings[len(b.Ratings)-batteries:])
+	positions := make([]int, batteries)
+	// Initialize positions
+	for i := range positions {
+		positions[i] = len(b.Ratings) - batteries + i
+	}
+	// fmt.Println(ratings)
+	// fmt.Println(positions)
 
-	// TODO: implement BiggestJoltage for 12 battieries
+	for battery := 0; battery < batteries; battery++ {
+		// fmt.Println("====")
+		// do not walk further back then previous battery
+		leftBoundary := 0
+		if battery > 0 {
+			leftBoundary = positions[battery-1] + 1
+		}
+		// fmt.Println("Battery", battery, "Left Boundary", leftBoundary)
+		// walk backwards
+		for p := positions[battery]; p >= leftBoundary; p-- {
+			if b.Ratings[p] >= ratings[battery] {
+				ratings[battery] = b.Ratings[p]
+				positions[battery] = p
+			}
+		}
+		// fmt.Println("Battery", battery, "End Position", positions[battery], "Rating", ratings[battery])
+		// fmt.Println(ratings)
+		// fmt.Println(positions)
+	}
 
 	// Sum up ratings by position
 	var result int64

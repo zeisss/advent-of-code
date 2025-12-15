@@ -59,7 +59,7 @@ func TestBank_BatteryCombiJoltage(t *testing.T) {
 
 	bank = ParseLine("1234321")
 	result = bank.BatteryCombiJoltage(4)
-	assert.EqualValues(t, 3432, result)
+	assert.EqualValues(t, 4321, result)
 
 	bank = ParseLine("987654321111111")
 	result = bank.BatteryCombiJoltage(batteries)
