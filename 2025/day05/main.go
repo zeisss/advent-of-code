@@ -2,17 +2,18 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 )
 
 func Part1(input string) int {
-	return ParseDatabase(input).CountFresh()
+	return ParseDatabase(input).CountFreshInventory()
 }
 
-func Part2(input string) int {
+func Part2(input string) int64 {
 	db := ParseDatabase(input)
 
-	return db.CountUniqueFresh()
+	return db.CountFreshByRanges()
 
 }
 
@@ -21,9 +22,17 @@ type Ingredient int
 type Range struct {
 	From, To Ingredient
 }
+
+func (r Range) Count() int64 {
+	return int64(r.To-r.From) + 1
+}
+func (r Range) String() string {
+	return fmt.Sprintf("%d-%d", r.From, r.To)
+}
+
 type Database struct {
-	Fresh       []Range
-	Ingredients []Ingredient
+	FreshRanges []Range
+	Inventory   []Ingredient
 }
 
 func ParseDatabase(input string) Database {
@@ -39,13 +48,20 @@ func ParseDatabase(input string) Database {
 				continue
 			}
 			r := ParseRange(line)
-			db.Fresh = append(db.Fresh, r)
+			db.FreshRanges = append(db.FreshRanges, r)
 		} else if state == 1 {
 			var i Ingredient
 			fmt.Sscanf(line, "%d", &i)
-			db.Ingredients = append(db.Ingredients, i)
+			db.Inventory = append(db.Inventory, i)
 		}
 	}
+
+	slices.SortFunc(db.FreshRanges, func(a, b Range) int {
+		if a.From != b.From {
+			return int(a.From - b.From)
+		}
+		return int(a.To - b.To)
+	})
 
 	return db
 }
@@ -56,38 +72,52 @@ func ParseRange(line string) Range {
 	return r
 }
 
-func (d Database) IsFresh(i Ingredient) bool {
-	for _, freshRange := range d.Fresh {
+func (d Database) IsFresh(i Ingredient) (Range, bool) {
+	for _, freshRange := range d.FreshRanges {
 		if i >= freshRange.From && i <= freshRange.To {
-			return true
+			return freshRange, true
 		}
 	}
-	return false
+	return Range{}, false
 }
 
 // Day 05 Part 1
-func (d Database) CountFresh() int {
+func (d Database) CountFreshInventory() int {
 	count := 0
-	for _, ingredient := range d.Ingredients {
-		if d.IsFresh(ingredient) {
+	for _, ingredient := range d.Inventory {
+		if _, ok := d.IsFresh(ingredient); ok {
 			count++
 		}
 	}
 	return count
 }
 
-func (d Database) CountUniqueFresh() int {
-	seen := map[Ingredient]struct{}{}
+// Day 05 Part 2
+func (d Database) CountFreshByRanges() int64 {
+	var counter int64
 
-	for _, r := range d.Fresh {
-		for i := r.From; i <= r.To; i++ {
-			if d.IsFresh(i) {
-				seen[i] = struct{}{}
-			}
+	// We can count the first range completely:
+	counter += d.FreshRanges[0].Count()
+	lastCountedIngredient := d.FreshRanges[0].To
+	// log.Println(d.FreshRanges[0], "\t", d.FreshRanges[0].Count())
+
+	for _, r := range d.FreshRanges[1:] {
+		if lastCountedIngredient < r.From {
+			// we can count the whole range
+			// log.Println(r, "\t", r.Count())
+			counter += r.Count()
+			lastCountedIngredient = r.To
+		} else if lastCountedIngredient >= r.From && lastCountedIngredient <= r.To {
+			// we already covered part of the range
+			// log.Println(r, "\t", int64(r.To-lastCountedIngredient))
+			counter += int64(r.To - lastCountedIngredient)
+			lastCountedIngredient = r.To
+		} else {
+			fmt.Println("unhandled", r)
 		}
 	}
 
-	return len(seen)
+	return counter
 }
 
 func main() {

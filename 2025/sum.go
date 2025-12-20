@@ -15,6 +15,14 @@ func Sum[T constraints.Integer](it iter.Seq[T]) T {
 	return agg
 }
 
+func Count[T constraints.Integer](it iter.Seq[T]) int64 {
+	var cnt int64
+	for range it {
+		cnt++
+	}
+	return cnt
+}
+
 func Filter[T any](it iter.Seq[T], filter func(T) bool) iter.Seq[T] {
 	return func(yield func(T) bool) {
 		for v := range it {
