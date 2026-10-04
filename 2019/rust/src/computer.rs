@@ -7,6 +7,8 @@ pub type Memory = Vec<Value>;
 
 const OP_CODE_ADD: i32 = 1;
 const OP_CODE_MULTIPLY: i32 = 2;
+const OP_CODE_READ_INPUT: i32 = 3;
+const OP_CODE_WRITE_OUTPUT: i32 = 4;
 const OP_CODE_QUIT_PROGRAM: i32 = 99;
 
 #[derive(PartialEq, Debug)]
@@ -23,47 +25,104 @@ pub fn parse_program(input: &str) -> Result<Memory, Error> {
 
 pub struct ExecuteResult {
     pub memory: Memory,
+    pub output: Vec<Value>,
 }
 
-pub fn execute(memory: Memory) -> ExecuteResult {
+#[derive(Debug, PartialEq)]
+enum ParameterMode {
+    Position,
+    Immediate,
+}
+
+// decode_instruction decodes the value and returns the op code and parameter mode
+// for each argument (see day05).
+fn decode_instruction(value: Value) -> (i32, ParameterMode, ParameterMode, ParameterMode) {
+    use ParameterMode::*;
+
+    // ABCDE
+    // DE - opcode
+    let op_code = value % 100;
+
+    match value - op_code {
+        0 => (op_code, Position, Position, Position),
+        100 => (op_code, Immediate, Position, Position),
+        1000 => (op_code, Position, Immediate, Position),
+        1100 => (op_code, Immediate, Immediate, Position),
+        10000 => (op_code, Position, Position, Immediate),
+        10100 => (op_code, Immediate, Position, Immediate),
+        11000 => (op_code, Position, Immediate, Immediate),
+        11100 => (op_code, Immediate, Immediate, Immediate),
+        _ => panic!("unknwon op_code modifiers"),
+    }
+}
+
+fn read_address(mem: &Memory, addr: Position, mode: ParameterMode) -> Value {
+    let raw_value = mem.get(addr).unwrap();
+
+    if mode == ParameterMode::Immediate {
+        *raw_value
+    } else {
+        let addr: usize = (*raw_value).try_into().unwrap();
+        *mem.get(addr).unwrap()
+    }
+}
+
+fn read_target(mem: &Memory, addr: Position) -> Value {
+    let raw_value = mem.get(addr).unwrap();
+    *raw_value
+}
+
+pub fn execute(memory: Memory, inputs: Vec<Value>) -> ExecuteResult {
     let mut ps: Position = 0;
     let mut mem = memory;
+    let mut inputs = inputs.clone();
+    inputs.reverse(); // So we can pop() them in order
+    let mut output = Vec::new();
 
     loop {
-        let op_code = mem.get(ps);
+        // println!("MEMORY @ {}: {:?}", ps, mem);
+        let (op_code, mode1, mode2, _mode3) = decode_instruction(*mem.get(ps).unwrap());
         match op_code {
-            Some(&OP_CODE_ADD) => {
-                let address1: usize = (*mem.get(ps + 1).unwrap()).try_into().unwrap();
-                let address2: usize = (*mem.get(ps + 2).unwrap()).try_into().unwrap();
-                let target_address: usize = (*mem.get(ps + 3).unwrap()).try_into().unwrap();
-
-                let value1 = mem.get(address1).unwrap();
-                let value2 = mem.get(address2).unwrap();
+            OP_CODE_ADD => {
+                let value1 = read_address(&mem, ps + 1, mode1);
+                let value2 = read_address(&mem, ps + 2, mode2);
+                let target = read_target(&mem, ps + 3) as usize;
 
                 // println!("SET {:?} <= {:?} + {:?}", ps + 3, value1, value2);
-                mem[target_address] = value1 + value2;
+                mem[target] = value1 + value2;
                 ps += 4;
             }
-            Some(&OP_CODE_MULTIPLY) => {
-                let address1: usize = (*mem.get(ps + 1).unwrap()).try_into().unwrap();
-                let address2: usize = (*mem.get(ps + 2).unwrap()).try_into().unwrap();
-                let target_address: usize = (*mem.get(ps + 3).unwrap()).try_into().unwrap();
+            OP_CODE_MULTIPLY => {
+                let value1 = read_address(&mem, ps + 1, mode1);
+                let value2 = read_address(&mem, ps + 2, mode2);
+                let target = read_target(&mem, ps + 3) as usize;
 
-                let value1 = mem.get(address1).unwrap();
-                let value2 = mem.get(address2).unwrap();
-
-                // println!("SET {:?} <= {:?} + {:?}", ps + 3, value1, value2);
-                mem[target_address] = value1 * value2;
+                // println!("SET {:?} <= {:?} * {:?}", ps + 3, value1, value2);
+                mem[target] = value1 * value2;
                 ps += 4;
             }
-            Some(&OP_CODE_QUIT_PROGRAM) => break,
+            OP_CODE_READ_INPUT => {
+                let next_input = inputs.pop().unwrap();
+                let target = read_target(&mem, ps + 1) as usize;
+                // println!("SET {:?} <= {:?}", target, next_input);
+                mem[target] = next_input;
+                ps += 2;
+            },
+            OP_CODE_WRITE_OUTPUT => {
+                let value = read_address(&mem, ps + 1, mode1);
+                output.push(value);
+                ps += 2;
+            }
+            OP_CODE_QUIT_PROGRAM => break,
             _ => panic!("unknown op code: {:?}", op_code),
         }
-
-        // println!("MEMORY: {:?}", mem);
     }
+    // println!("MEMORY: {:?}", mem);
 
-    ExecuteResult { memory: mem }
+    ExecuteResult {
+        memory: mem,
+        output: output,
+    }
 }
 
 #[cfg(test)]
@@ -72,7 +131,11 @@ mod tests {
 
     fn run(input: &str) -> ExecuteResult {
         let memory = parse_program(input).unwrap();
-        execute(memory)
+        execute(memory, vec![])
+    }
+    fn run_with_input(input: &str, i: Vec<Value>) -> ExecuteResult {
+        let memory = parse_program(input).unwrap();
+        execute(memory, i)
     }
 
     #[test]
@@ -82,7 +145,7 @@ mod tests {
     }
 
     #[test]
-    fn test_example_one() {
+    fn test_example_day02() {
         let input = "1,9,10,3,2,3,11,0,99,30,40,50";
         let result = run(input);
         assert_eq!(
@@ -92,7 +155,7 @@ mod tests {
     }
 
     #[test]
-    fn test_example_additional() {
+    fn test_example_day02_extra() {
         let result = run("99");
         assert_eq!(result.memory, vec![99]);
 
@@ -107,5 +170,49 @@ mod tests {
 
         let result = run("1,1,1,4,99,5,6,0,99");
         assert_eq!(result.memory, vec![30, 1, 1, 4, 2, 5, 6, 0, 99]);
+    }
+
+    #[test]
+    fn test_example_day05_extra() {
+        let result = run("1101,100,-1,4,0");
+        assert_eq!(result.memory, vec![1101, 100, -1, 4, 99]);
+
+        let result = run_with_input("3,2,0", vec![99]);
+        assert_eq!(result.memory, vec![3, 2, 99]);
+
+        let result = run("4,2,99");
+        assert_eq!(result.output, vec![99]);
+    }
+    #[test]
+    fn test_decode_instruction() {
+        let (op_code, b, c, d) = decode_instruction(99);
+        assert_eq!(op_code, 99);
+        assert_eq!(b, ParameterMode::Position);
+        assert_eq!(c, ParameterMode::Position);
+        assert_eq!(d, ParameterMode::Position);
+
+        let (op_code, b, c, d) = decode_instruction(1022);
+        assert_eq!(op_code, 22);
+        assert_eq!(b, ParameterMode::Position);
+        assert_eq!(c, ParameterMode::Immediate);
+        assert_eq!(d, ParameterMode::Position);
+
+        let (op_code, b, c, d) = decode_instruction(11120);
+        assert_eq!(op_code, 20);
+        assert_eq!(b, ParameterMode::Immediate);
+        assert_eq!(c, ParameterMode::Immediate);
+        assert_eq!(d, ParameterMode::Immediate);
+
+        let (op_code, b, c, d) = decode_instruction(10120);
+        assert_eq!(op_code, 20);
+        assert_eq!(b, ParameterMode::Immediate);
+        assert_eq!(c, ParameterMode::Position);
+        assert_eq!(d, ParameterMode::Immediate);
+
+        let (op_code, b, c, d) = decode_instruction(10020);
+        assert_eq!(op_code, 20);
+        assert_eq!(b, ParameterMode::Position);
+        assert_eq!(c, ParameterMode::Position);
+        assert_eq!(d, ParameterMode::Immediate);
     }
 }
