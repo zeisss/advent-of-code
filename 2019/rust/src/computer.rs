@@ -9,6 +9,10 @@ const OP_CODE_ADD: i32 = 1;
 const OP_CODE_MULTIPLY: i32 = 2;
 const OP_CODE_READ_INPUT: i32 = 3;
 const OP_CODE_WRITE_OUTPUT: i32 = 4;
+const OP_CODE_JMP_IF_TRUE: i32 = 5;
+const OP_CODE_JMP_IF_FALSE: i32 = 6;
+const OP_CODE_LESS_THAN: i32 = 7;
+const OP_CODE_EQUAL: i32 = 8;
 const OP_CODE_QUIT_PROGRAM: i32 = 99;
 
 #[derive(PartialEq, Debug)]
@@ -80,7 +84,7 @@ pub fn execute(memory: Memory, inputs: Vec<Value>) -> ExecuteResult {
     let mut output = Vec::new();
 
     loop {
-        // println!("MEMORY @ {}: {:?}", ps, mem);
+        println!("MEMORY @ {}: {:?}", ps, mem);
         let (op_code, mode1, mode2, _mode3) = decode_instruction(*mem.get(ps).unwrap());
         match op_code {
             OP_CODE_ADD => {
@@ -112,6 +116,46 @@ pub fn execute(memory: Memory, inputs: Vec<Value>) -> ExecuteResult {
                 let value = read_address(&mem, ps + 1, mode1);
                 output.push(value);
                 ps += 2;
+            },
+
+            OP_CODE_JMP_IF_TRUE => {
+                let value1 = read_address(&mem, ps + 1, mode1);
+                let target = read_address(&mem, ps + 2,mode2) as usize;
+
+                if value1 != 0 {
+                    ps = target;
+                } else {
+                    ps += 3;
+                }
+            },
+            OP_CODE_JMP_IF_FALSE => {
+                let value1 = read_address(&mem, ps + 1, mode1);
+                let target = read_address(&mem, ps + 2, mode2) as usize;
+
+                if value1 == 0 {
+                    ps = target;
+                } else {
+                    ps += 3;
+                }
+            },
+
+            OP_CODE_LESS_THAN => {
+                let value1 = read_address(&mem, ps + 1, mode1);
+                let value2 = read_address(&mem, ps + 2, mode2);
+                let target = read_target(&mem, ps + 3) as usize;
+
+                // println!("SET {:?} <= {:?} == {:?}", ps + 3, value1, value2);
+                mem[target] = if value1 < value2 { 1 } else { 0 };
+                ps += 4;
+            }
+            OP_CODE_EQUAL => {
+                let value1 = read_address(&mem, ps + 1, mode1);
+                let value2 = read_address(&mem, ps + 2, mode2);
+                let target = read_target(&mem, ps + 3) as usize;
+
+                // println!("SET {:?} <= {:?} == {:?}", ps + 3, value1, value2);
+                mem[target] = if value1 == value2 { 1 } else { 0 };
+                ps += 4;
             }
             OP_CODE_QUIT_PROGRAM => break,
             _ => panic!("unknown op code: {:?}", op_code),
@@ -136,6 +180,12 @@ mod tests {
     fn run_with_input(input: &str, i: Vec<Value>) -> ExecuteResult {
         let memory = parse_program(input).unwrap();
         execute(memory, i)
+    }
+
+    fn run_single_io(input: &str, i: i32) -> i32 {
+        let memory = parse_program(input).unwrap();
+        let result = execute(memory, vec![i]);
+        result.output[0]
     }
 
     #[test]
@@ -183,6 +233,81 @@ mod tests {
         let result = run("4,2,99");
         assert_eq!(result.output, vec![99]);
     }
+
+    #[test]
+    fn test_day05_op_code_equal() {
+        // Position Mode
+        // Compare input with 8 and print 1 if true or zero if false
+        let input = "3,9,8,9,10,9,4,9,99,-1,8";
+
+        let result = run_with_input(input, vec![7]);
+        assert_eq!(result.output, vec![0]);
+
+        let result = run_with_input(input, vec![8]);
+        assert_eq!(result.output, vec![1]);
+
+        let result = run_with_input(input, vec![9]);
+        assert_eq!(result.output, vec![0]);
+
+        // Immediate Mode
+        let input = "3,3,1108,-1,8,3,4,3,99";
+        let result = run_with_input(input, vec![7]);
+        assert_eq!(result.output, vec![0]);
+
+        let result = run_with_input(input, vec![8]);
+        assert_eq!(result.output, vec![1]);
+
+        let result = run_with_input(input, vec![9]);
+        assert_eq!(result.output, vec![0]);
+    }
+
+    #[test]
+    fn test_day05_op_code_less_than() {
+        // Position Mode
+        let input = "3,9,7,9,10,9,4,9,99,-1,8";
+        let result = run_with_input(input, vec![7]);
+        assert_eq!(result.output, vec![1]);
+
+        let result = run_with_input(input, vec![8]);
+        assert_eq!(result.output, vec![0]);
+
+        let result = run_with_input(input, vec![9]);
+        assert_eq!(result.output, vec![0]);
+
+        // Immediate Mode
+        let input = "3,3,1107,-1,8,3,4,3,99";
+        let result = run_with_input(input, vec![7]);
+        assert_eq!(result.output, vec![1]);
+
+        let result = run_with_input(input, vec![8]);
+        assert_eq!(result.output, vec![0]);
+
+        let result = run_with_input(input, vec![9]);
+        assert_eq!(result.output, vec![0]);
+    }
+
+    #[test]
+    fn test_day05_op_code_jmp() {
+        let input = "3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9"; // position mode
+        let input2 = "3,3,1105,-1,9,1101,0,0,12,4,12,99,1"; // immediate mode
+        
+        assert_eq!(0, run_single_io(input, 0));
+        assert_eq!(1, run_single_io(input, 1));
+        assert_eq!(1, run_single_io(input, 2));
+        
+        assert_eq!(0, run_single_io(input2, 0));
+        assert_eq!(1, run_single_io(input2, 1));
+        assert_eq!(1, run_single_io(input2, 2));
+    }
+
+    #[test]
+    fn test_day05_complex() {
+        let large = "3,21,1008,21,8,20,1005,20,22,107,8,21,20,1006,20,31,1106,0,36,98,0,0,1002,21,125,20,4,20,1105,1,46,104,999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99";
+        assert_eq!(999, run_single_io(large, 7));
+        assert_eq!(1000, run_single_io(large, 8));
+        assert_eq!(1001, run_single_io(large, 9));
+    }
+
     #[test]
     fn test_decode_instruction() {
         let (op_code, b, c, d) = decode_instruction(99);
